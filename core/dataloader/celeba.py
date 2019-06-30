@@ -1,6 +1,5 @@
 import copy
 from torchvision.datasets import CelebA
-from torch.utils.data.dataloader import default_collate
 from ._base import SelfSupervisedLoader
 from .utils import collate
 
