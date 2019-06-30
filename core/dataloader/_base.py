@@ -18,6 +18,8 @@ class BaseDataLoader(DataLoader, ABC):
         dataset (Dataset): dataset from which to load the data.
         batch_size (int)
         shuffle (bool)
+        train_transform (callable): transformation for train set PIL image
+        val_transform (callable): transformation for validation set PIL image
         sampler (Sampler): torch.utils.data.Sampler, defines dataset scope
         validation_split (int, float): number of validation samples or fraction in ]0, 1[
         num_workers (int)
@@ -136,13 +138,15 @@ class BaseDataLoader(DataLoader, ABC):
         pass
 
 
-class UnsupervisedDataLoader(BaseDataLoader):
+class SelfSupervisedLoader(BaseDataLoader):
     """DataLoader for unsupervised training settings
 
     Args:
         dataset (Dataset): dataset from which to load the data.
         batch_size (int)
         shuffle (bool)
+        train_transform (callable): transformation for train set PIL image
+        val_transform (callable): transformation for validation set PIL image
         validation_split (int, float): number of validation samples of fraction in ]0, 1[
         num_workers (int)
         sampler (Sampler): torch.utils.data.Sampler, defines dataset scope
@@ -160,17 +164,17 @@ class UnsupervisedDataLoader(BaseDataLoader):
     def __init__(self, dataset, batch_size, shuffle, validation_split,
                  train_transform, val_transform, num_workers, sampler,
                  collate_fn, drop_last, seed):
-        super(UnsupervisedDataLoader, self).__init__(dataset=dataset,
-                                                     batch_size=batch_size,
-                                                     shuffle=shuffle,
-                                                     validation_split=validation_split,
-                                                     train_transform=train_transform,
-                                                     val_transform=val_transform,
-                                                     num_workers=num_workers,
-                                                     sampler=sampler,
-                                                     collate_fn=collate_fn,
-                                                     drop_last=drop_last,
-                                                     seed=seed)
+        super(SelfSupervisedLoader, self).__init__(dataset=dataset,
+                                                   batch_size=batch_size,
+                                                   shuffle=shuffle,
+                                                   validation_split=validation_split,
+                                                   train_transform=train_transform,
+                                                   val_transform=val_transform,
+                                                   num_workers=num_workers,
+                                                   sampler=sampler,
+                                                   collate_fn=collate_fn,
+                                                   drop_last=drop_last,
+                                                   seed=seed)
 
         scope = self.sampler.indices if sampler else np.arange(self.n_samples)
         self.train_sampler, self.valid_sampler = self._split_sampler(split=self.validation_split,
