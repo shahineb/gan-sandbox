@@ -102,3 +102,9 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+
+# sandbox
+sandbox
+
+# OS generated files
+**/.DS_Store
