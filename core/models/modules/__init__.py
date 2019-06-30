@@ -4,3 +4,5 @@ are model agnostic
 """
 
 from .blocks import *
+from .random_mask import FeatureMasksGenerator
+from .discriminator import Discriminator

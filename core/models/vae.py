@@ -13,7 +13,7 @@ class VAE(nn.Module):
         z_dim (int):
     """
 
-    def __init__(self, channels=3, h_dim=1024, z_dim=32):
+    def __init__(self, channels, h_dim=1024, z_dim=32):
         super(VAE, self).__init__()
         self.h_dim = h_dim
         self.z_dim = z_dim
