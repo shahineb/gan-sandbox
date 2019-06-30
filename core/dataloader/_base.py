@@ -179,7 +179,6 @@ class SelfSupervisedLoader(BaseDataLoader):
         scope = self.sampler.indices if sampler else np.arange(self.n_samples)
         self.train_sampler, self.valid_sampler = self._split_sampler(split=self.validation_split,
                                                                      scope=scope)
-        self.n_samples = len(self.train_sampler)
         self.n_train_samples = len(self.train_sampler)
         self.n_val_samples = len(self.valid_sampler) if self.valid_sampler else 0
 

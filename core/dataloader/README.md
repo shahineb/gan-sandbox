@@ -30,7 +30,7 @@ plt.figure(figsize=(16, 8))
 grid = make_grid(inputs, nrow=8)
 plt.imshow(grid.permute(1, 2, 0).numpy())
 ```
-<p align="center"><img width="40%" src="docs/img/celeba_sample.png" /></p>
+<p align="center"><img width="40%" src="https://github.com/shahineb/neural-conditioner/blob/master/docs/img/celeba_sample.png" /></p>
 
 ## Commands
 
