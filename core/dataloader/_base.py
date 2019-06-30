@@ -39,6 +39,7 @@ class BaseDataLoader(DataLoader, ABC):
                  num_workers, sampler, collate_fn, drop_last, n_steps=-1,
                  val_transform=None, seed=SEED, validation_split=0.):
         shuffle = False if sampler else shuffle
+        self.n_samples = len(dataset)
         self.train_transform = train_transform
         self.val_transform = val_transform
         self.init_kwargs = {
@@ -53,7 +54,6 @@ class BaseDataLoader(DataLoader, ABC):
         super(BaseDataLoader, self).__init__(**self.init_kwargs)
         self.validation_split = validation_split
         self.seed = seed or BaseDataLoader.SEED
-        self.n_samples = len(dataset)
         self.n_steps = n_steps
 
     def __getitem__(self, idx):
