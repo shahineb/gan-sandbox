@@ -1,13 +1,15 @@
 import torch
 import torch.nn as nn
+import numpy as np
+from .backbone import Convnet
 from .modules import Conv2d, ConvTranspose2d
 
 
-class VAE(nn.Module):
+class VAE(Convnet):
     """Variational AutoEncoder implementation
 
     Args:
-        channels (int):
+        input_size (tuple): (C, W, H)
         h_dim (int): hidden space dimensionality
         z_dim (int): latent space dimensionality
         enc_nf (list[int]): number of filters of encoding path
@@ -18,12 +20,13 @@ class VAE(nn.Module):
     """
     BASE_KWARGS = {'kernel_size': 3, 'stride': 2, 'relu': True}
 
-    def __init__(self, channels, h_dim, z_dim, enc_nf, dec_nf,
-                 enc_kwargs=BASE_KWARGS, dec_kwargs=BASE_KWARGS, out_kwargs=BASE_KWARGS):
-        super(VAE, self).__init__()
+    def __init__(self, input_size, z_dim, enc_nf, dec_nf, enc_kwargs=BASE_KWARGS,
+                 dec_kwargs=BASE_KWARGS, out_kwargs=BASE_KWARGS):
+        super(VAE, self).__init__(input_size)
 
         # Setup network's dimensions
-        self.h_dim = h_dim
+        C, W, H = input_size
+        self.h_dim = int(np.round(C * W * H / 2**len(enc_nf)))
         self.z_dim = z_dim
         self.enc_nf = enc_nf
         self.dec_nf = dec_nf
@@ -32,39 +35,22 @@ class VAE(nn.Module):
         self.out_kwargs = out_kwargs
 
         # Build enconding path
-        encoding_seq = [Conv2d(in_channels=channels, out_channels=self.enc_nf[0], **self.enc_kwargs[0])]
+        encoding_seq = [Conv2d(in_channels=C, out_channels=self.enc_nf[0], **self.enc_kwargs[0])]
         encoding_seq += [Conv2d(in_channels=self.enc_nf[i - 1], out_channels=self.enc_nf[i],
                          **self.enc_kwargs[i]) for i in range(1, len(self.enc_nf))]
         self.encoder = nn.Sequential(*encoding_seq)
 
         # Build bottleneck layers
-        self.fc1 = nn.Linear(h_dim, z_dim)
-        self.fc2 = nn.Linear(h_dim, z_dim)
-        self.fc3 = nn.Linear(z_dim, h_dim)
+        self.fc1 = nn.Linear(self.h_dim, z_dim)
+        self.fc2 = nn.Linear(self.h_dim, z_dim)
+        self.fc3 = nn.Linear(z_dim, self.h_dim)
 
         # Build decoding layers
-        decoding_seq = [ConvTranspose2d(h_dim, out_channels=self.dec_nf[0], **self.dec_kwargs[0])]
+        decoding_seq = [ConvTranspose2d(self.h_dim, out_channels=self.dec_nf[0], **self.dec_kwargs[0])]
         decoding_seq += [ConvTranspose2d(in_channels=self.dec_nf[i - 1], out_channels=self.dec_nf[i],
                          **self.dec_kwargs[i]) for i in range(1, len(self.dec_nf))]
-        decoding_seq += [ConvTranspose2d(self.dec_nf[-1], channels, **self.out_kwargs)]
+        decoding_seq += [ConvTranspose2d(self.dec_nf[-1], C, **self.out_kwargs)]
         self.decoder = nn.Sequential(*decoding_seq)
-
-    @staticmethod
-    def _init_kwargs_path(kwargs, nb_filters):
-        """Initializes encoding or decoding path making sure making sure it
-        matches the number of filters dimensions
-
-        Args:
-            kwargs (dict, list[dict]): enc_kwargs or dec_kwargs
-            nb_filters (list[int]): enc_nf or dec_nf
-        """
-        if isinstance(kwargs, list):
-            assert len(kwargs) == len(nb_filters), "Kwargs and number of filters length must match"
-            return kwargs
-        elif isinstance(kwargs, dict):
-            return len(nb_filters) * [kwargs]
-        else:
-            raise TypeError("kwargs must be of type dict or list[dict]")
 
     def reparameterize(self, mu, logvar):
         """VAE reparameterization trick (Kingma 2014)

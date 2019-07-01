@@ -1,12 +1,17 @@
 import numpy as np
 import torch.nn as nn
+from .modules import Conv2d
 
 
 class Discriminator(nn.Module):
-    def __init__(self, input_dim, image_size, n_filters, output_dim=1):
+    def __init__(self, input_size, nb_filters, conv_kwargs, output_dim=1):
         super(Discriminator, self).__init__()
 
-        self.hidden_layer = nn.Sequential()
+        # Setup network's dimensions
+        self.input_size = input_size
+        self.nb_filters = nb_filters
+        self.output_dim = output_dim
+
         for i in range(len(n_filters)):
             # Conv Layer
             if i == 0:
@@ -37,6 +42,7 @@ class Discriminator(nn.Module):
             act_name = "lrelu_" + str(i + 1)
             act = nn.LeakyReLU(0.2)
             self.hidden_layer.add_module(act_name, act)
+        self.hidden_layers = nn.Sequential()
 
         # Output Layer
         self.output_layer = nn.Sequential()
