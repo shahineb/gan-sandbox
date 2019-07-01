@@ -1,62 +1,48 @@
 import numpy as np
 import torch.nn as nn
+from .backbone import ConvNet
 from .modules import Conv2d
 
 
-class Discriminator(nn.Module):
+class Discriminator(ConvNet):
     def __init__(self, input_size, nb_filters, conv_kwargs, output_dim=1):
-        super(Discriminator, self).__init__()
+        """Basic convolutional discriminator network
+
+        Args:
+            input_size (tuple): (C, W, H)
+            nb_filters (list[int]): number of filters of each block
+            conv_kwargs (dict, list[dict]): convolutional block kwargs, if dict same everywhere
+            output_dim (int): output dimensionality
+        """
+        super(Discriminator, self).__init__(input_size)
 
         # Setup network's dimensions
-        self.input_size = input_size
+        C, H, W = input_size
         self.nb_filters = nb_filters
+        self.conv_kwargs = Discriminator._init_kwargs_path(conv_kwargs, nb_filters)
+        self.h_dim = int(np.round(C * W * H / 2**len(nb_filters)))
         self.output_dim = output_dim
 
-        for i in range(len(n_filters)):
-            # Conv Layer
-            if i == 0:
-                conv = nn.Conv2d(input_dim,
-                                 n_filters[i],
-                                 kernel_size=5,
-                                 stride=2,
-                                 padding=2)
-            else:
-                conv = nn.Conv2d(n_filters[i - 1],
-                                 n_filters[i],
-                                 kernel_size=5,
-                                 stride=2,
-                                 padding=2)
-            conv_name = "conv_" + str(i + 1)
-            self.hidden_layer.add_module(conv_name, conv)
+        # Build convolutional layers
+        hidden_seq = []
+        hidden_seq += [Conv2d(in_channels=C, out_channels=self.nb_filters[0], **self.conv_kwargs[0])]
+        hidden_seq += [Conv2d(in_channels=self.nb_filters[i - 1], out_channels=self.nb_filters[i],
+                       **self.conv_kwargs[i]) for i in range(1, len(self.nb_filters))]
 
-            # Conv kernel intializer
-            nn.init.normal_(conv.weight, mean=0., std=0.02)
-            nn.init.constant_(conv.bias, 0.)
+        # TODO : Conv kernel intializer
+        self.hidden_layers = nn.Sequential(**hidden_seq)
 
-            # Batch norm
-            bn_name = "batchnorm_" + str(i + 1)
-            bn = nn.BatchNorm2d(n_filters[i], affine=True)
-            self.hidden_layer.add_module(bn_name, bn)
-
-            # Activation
-            act_name = "lrelu_" + str(i + 1)
-            act = nn.LeakyReLU(0.2)
-            self.hidden_layer.add_module(act_name, act)
-        self.hidden_layers = nn.Sequential()
-
-        # Output Layer
-        self.output_layer = nn.Sequential()
-        new_image_size = int(np.round(image_size / (2**len(n_filters))))
-        dense = nn.Linear(n_filters[-1] * new_image_size**2, output_dim)
-        sigmoid = nn.Sigmoid()
-        self.output_layer.add_module("fc", dense)
-        self.output_layer.add_module("sigmoid", sigmoid)
-        nn.init.normal_(dense.weight, mean=0., std=0.02)
-        nn.init.constant_(dense.bias, 0.)
+        # Build and initialize output layer
+        self.output_layer = nn.Linear(self.h_dim, self.output_dim)
+        nn.init.normal_(self.output_layer.weight, mean=0., std=0.02)
+        nn.init.constant_(self.output_layerense.bias, 0.)
 
     def forward(self, x):
+        """
+        Args:
+            x (torch.Tensor): (N, C, W, H)
+        """
         h = self.hidden_layer(x)
-        (_, C, H, W) = h.data.size()
-        h = h.view(-1, C * H * W)
+        h = h.view(-1, self.h_dim)
         out = self.output_layer(h)
         return out

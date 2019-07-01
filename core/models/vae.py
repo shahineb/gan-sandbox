@@ -1,11 +1,11 @@
 import torch
 import torch.nn as nn
 import numpy as np
-from .backbone import Convnet
+from .backbone import ConvNet
 from .modules import Conv2d, ConvTranspose2d
 
 
-class VAE(Convnet):
+class VAE(ConvNet):
     """Variational AutoEncoder implementation
 
     Args:
@@ -34,7 +34,7 @@ class VAE(Convnet):
         self.dec_kwargs = VAE._init_kwargs_path(dec_kwargs, dec_nf)
         self.out_kwargs = out_kwargs
 
-        # Build enconding path
+        # Build encoding path
         encoding_seq = [Conv2d(in_channels=C, out_channels=self.enc_nf[0], **self.enc_kwargs[0])]
         encoding_seq += [Conv2d(in_channels=self.enc_nf[i - 1], out_channels=self.enc_nf[i],
                          **self.enc_kwargs[i]) for i in range(1, len(self.enc_nf))]

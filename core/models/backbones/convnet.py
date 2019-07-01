@@ -41,11 +41,3 @@ class ConvNet(nn.Module):
     @property
     def input_size(self):
         return self._input_size
-
-    @property
-    def nb_filters(self):
-        return self._nb_filters
-
-    @property
-    def conv_kwargs(self):
-        return self._conv_kwargs
