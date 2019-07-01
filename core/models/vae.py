@@ -4,8 +4,7 @@ from .modules import Conv2d, ConvTranspose2d
 
 
 class VAE(nn.Module):
-    """Variational AutoEncoder implementation from
-    https://github.com/sksq96/pytorch-vae/blob/master/vae.py
+    """Variational AutoEncoder implementation
 
     Args:
         channels (int):
