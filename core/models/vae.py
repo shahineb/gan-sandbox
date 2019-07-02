@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import numpy as np
-from .backbone import ConvNet
+from .backbones import ConvNet
 from .modules import Conv2d, ConvTranspose2d
 
 
@@ -26,7 +26,7 @@ class VAE(ConvNet):
 
         # Setup network's dimensions
         C, W, H = input_size
-        self.h_dim = int(np.round(C * W * H / 2**len(enc_nf)))
+        self.h_dim = self._hidden_dimension_numel(enc_nf)
         self.z_dim = z_dim
         self.enc_nf = enc_nf
         self.dec_nf = dec_nf
@@ -41,9 +41,12 @@ class VAE(ConvNet):
         self.encoder = nn.Sequential(*encoding_seq)
 
         # Build bottleneck layers
-        self.fc1 = nn.Linear(self.h_dim, z_dim)
-        self.fc2 = nn.Linear(self.h_dim, z_dim)
-        self.fc3 = nn.Linear(z_dim, self.h_dim)
+        try:
+            self.fc1 = nn.Linear(self.h_dim, z_dim)
+            self.fc2 = nn.Linear(self.h_dim, z_dim)
+            self.fc3 = nn.Linear(z_dim, self.h_dim)
+        except ZeroDivisionError:
+            raise ZeroDivisionError("Overpooled input")
 
         # Build decoding layers
         decoding_seq = [ConvTranspose2d(self.h_dim, out_channels=self.dec_nf[0], **self.dec_kwargs[0])]
