@@ -48,14 +48,13 @@ class NCTrainer(Trainer):
         for batch_idx, data in enumerate(dataloader):
 
             # Generate available and requested features masks and noise tensor
-            a, r = self.mask_generator(batch_size=self.dataloader.batch_size)
-            z = torch.rand(data.size())
+            a, r = self.mask_generator(batch_size=dataloader.batch_size)
+            z = torch.rand((dataloader.batch_size,) + data.shape[-2:]).unsqueeze(1)
 
             # Build vae input and real sample
-            a_ = a.unsqueeze(1).expand_as(data)
-            r_ = r.unsqueeze(1).expand_as(data)
-            inputs = torch.stack([data.mul(a_), a, r, z])
-            real_sample = torch.stack([inputs.mul(a_), inputs.mul(r_), a, r])
+            a_, r_ = a.unsqueeze(1), r.unsqueeze(1)
+            inputs = torch.cat([data.mul(a_), a_, r_, z], dim=1)
+            real_sample = torch.cat([inputs.mul(a_), inputs.mul(r_), a_, r_], dim=1)
 
             # Forward pass on neural conditioner
             fake_sample = self.model(inputs)

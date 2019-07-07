@@ -20,8 +20,8 @@ class VAE(ConvNet):
     """
     BASE_KWARGS = {'kernel_size': 3, 'stride': 2, 'relu': True}
 
-    def __init__(self, input_size, z_dim, enc_nf, dec_nf, enc_kwargs={},
-                 dec_kwargs={}, out_kwargs={}):
+    def __init__(self, input_size, z_dim, enc_nf, dec_nf, out_channels=None,
+                 enc_kwargs={}, dec_kwargs={}, out_kwargs={}):
         super(VAE, self).__init__(input_size)
 
         # Setup network's dimensions
@@ -29,6 +29,7 @@ class VAE(ConvNet):
         self.z_dim = z_dim
         self.enc_nf = enc_nf
         self.dec_nf = dec_nf
+        self.out_channels = out_channels or C
         self.enc_kwargs = VAE._init_kwargs_path({**VAE.BASE_KWARGS, **enc_kwargs}, enc_nf)
         self.dec_kwargs = VAE._init_kwargs_path({**VAE.BASE_KWARGS, **dec_kwargs}, dec_nf)
         self.out_kwargs = out_kwargs
@@ -52,7 +53,8 @@ class VAE(ConvNet):
         decoding_seq = [ConvTranspose2d(in_channels=self.h_dim, out_channels=self.dec_nf[0], **self.dec_kwargs[0])]
         decoding_seq += [ConvTranspose2d(in_channels=self.dec_nf[i - 1], out_channels=self.dec_nf[i],
                          **self.dec_kwargs[i]) for i in range(1, len(self.dec_nf))]
-        decoding_seq += [ConvTranspose2d(in_channels=self.dec_nf[-1], out_channels=C, **{**VAE.BASE_KWARGS, **self.out_kwargs})]
+        decoding_seq += [ConvTranspose2d(in_channels=self.dec_nf[-1], out_channels=self.out_channels,
+                                         **{**VAE.BASE_KWARGS, **self.out_kwargs})]
         self.decoder = nn.Sequential(*decoding_seq)
 
     def _hidden_dimension_numel(self):
