@@ -22,7 +22,6 @@ class Discriminator(ConvNet):
         C, H, W = input_size
         self.nb_filters = nb_filters
         self.conv_kwargs = Discriminator._init_kwargs_path(conv_kwargs, nb_filters)
-        self.h_dim = self._hidden_dimension_numel(nb_filters)
         self.output_dim = output_dim
 
         # Build convolutional layers
@@ -33,6 +32,7 @@ class Discriminator(ConvNet):
 
         # TODO : Conv kernel intializer
         self.hidden_layers = nn.Sequential(*hidden_seq)
+        self.h_dim = self._hidden_dimension_numel()
 
         # Build and initialize output layer
         try:
@@ -41,6 +41,14 @@ class Discriminator(ConvNet):
             raise ZeroDivisionError("Overpooled input")
         nn.init.normal_(self.output_layer.weight, mean=0., std=0.02)
         nn.init.constant_(self.output_layer.bias, 0.)
+
+    def _hidden_dimension_numel(self):
+        """Computes number of elements of hidden dimension
+        """
+        image_size = self.input_size
+        for conv_block in self.hidden_layers:
+            image_size = conv_block.output_size(image_size)
+        return np.prod(image_size)
 
     def forward(self, x):
         """

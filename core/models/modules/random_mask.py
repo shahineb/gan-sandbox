@@ -5,6 +5,7 @@ import torch.nn as nn
 class FeatureMasksGenerator(nn.Module):
 
     def __init__(self, size, coverage):
+        super(FeatureMasksGenerator, self).__init__()
         self.size = size
         self.min_coverage = coverage[0]
         self.max_coverage = coverage[1]
@@ -26,6 +27,6 @@ class FeatureMasksGenerator(nn.Module):
         r = (r.float() - a.float()) > 0
 
         # Tile mask at batch size
-        a = a.unsqueeze(0).repeat((batch_size, 1, 1))
-        r = r.unsqueeze(0).repeat((batch_size, 1, 1))
+        a = a.unsqueeze(0).repeat((batch_size, 1, 1)).float()
+        r = r.unsqueeze(0).repeat((batch_size, 1, 1)).float()
         return a, r
