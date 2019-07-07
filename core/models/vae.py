@@ -1,6 +1,6 @@
+import numpy as np
 import torch
 import torch.nn as nn
-import numpy as np
 from .backbones import ConvNet
 from .modules import Conv2d, ConvTranspose2d
 
@@ -26,7 +26,6 @@ class VAE(ConvNet):
 
         # Setup network's dimensions
         C, W, H = input_size
-        self.h_dim = self._hidden_dimension_numel(enc_nf)
         self.z_dim = z_dim
         self.enc_nf = enc_nf
         self.dec_nf = dec_nf
@@ -39,6 +38,7 @@ class VAE(ConvNet):
         encoding_seq += [Conv2d(in_channels=self.enc_nf[i - 1], out_channels=self.enc_nf[i],
                          **self.enc_kwargs[i]) for i in range(1, len(self.enc_nf))]
         self.encoder = nn.Sequential(*encoding_seq)
+        self.h_dim = self._hidden_dimension_numel()
 
         # Build bottleneck layers
         try:
@@ -54,6 +54,14 @@ class VAE(ConvNet):
                          **self.dec_kwargs[i]) for i in range(1, len(self.dec_nf))]
         decoding_seq += [ConvTranspose2d(self.dec_nf[-1], C, **self.out_kwargs)]
         self.decoder = nn.Sequential(*decoding_seq)
+
+    def _hidden_dimension_numel(self):
+        """Computes number of elements of hidden dimension
+        """
+        image_size = self.input_size
+        for conv_block in self.encoder:
+            image_size = conv_block.output_size(image_size)
+        return np.prod(image_size)
 
     def reparameterize(self, mu, logvar):
         """VAE reparameterization trick (Kingma 2014)

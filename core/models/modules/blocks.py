@@ -1,3 +1,4 @@
+import numpy as np
 import torch.nn as nn
 
 
@@ -46,12 +47,9 @@ class Conv2d(nn.Module):
         kernel_size = self.conv.kernel_size[0]
         padding = self.conv.padding[0]
         stride = self.conv.stride[0]
-        H_out = (H_in - kernel_size + 2 * padding) / stride + 1
-        W_out = (W_in - kernel_size + 2 * padding) / stride + 1
+        H_out = int(np.floor((H_in - kernel_size + 2 * padding) / stride + 1))
+        W_out = int(np.floor((W_in - kernel_size + 2 * padding) / stride + 1))
         return (C_out, H_out, W_out)
-
-
-
 
 
 class ConvTranspose2d(nn.Module):

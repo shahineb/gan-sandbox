@@ -1,6 +1,5 @@
 from abc import abstractmethod
 import torch.nn as nn
-import numpy as np
 
 
 class ConvNet(nn.Module):
@@ -31,16 +30,10 @@ class ConvNet(nn.Module):
         else:
             raise TypeError("kwargs must be of type dict or list[dict]")
 
-    def _hidden_dimension_numel(self, nb_filters):
+    def _hidden_dimension_numel(self):
         """Computes number of elements of hidden dimension
-        # TODO : how do you do when different number of strides/pooling among layers ?
-
-        Args:
-            nb_filters (list[int]): number of filter of each block
         """
-        new_H = int(np.round(self.input_size[0] / 2**len(nb_filters)))
-        new_W = int(np.round(self.input_size[1] / 2**len(nb_filters)))
-        return nb_filters[-1] * new_H * new_W
+        raise NotImplementedError
 
     @abstractmethod
     def forward(self, x):
