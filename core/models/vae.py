@@ -30,8 +30,8 @@ class VAE(ConvNet):
         self.enc_nf = enc_nf
         self.dec_nf = dec_nf
         self.out_channels = out_channels or C
-        self.enc_kwargs = VAE._init_kwargs_path({**VAE.BASE_KWARGS, **enc_kwargs}, enc_nf)
-        self.dec_kwargs = VAE._init_kwargs_path({**VAE.BASE_KWARGS, **dec_kwargs}, dec_nf)
+        self.enc_kwargs = self._init_kwargs_path(enc_kwargs, enc_nf)
+        self.dec_kwargs = self._init_kwargs_path(dec_kwargs, dec_nf)
         self.out_kwargs = out_kwargs
 
         # Build encoding path

@@ -13,8 +13,7 @@ class ConvNet(nn.Module):
         super(ConvNet, self).__init__()
         self._input_size = input_size
 
-    @staticmethod
-    def _init_kwargs_path(conv_kwargs, nb_filters):
+    def _init_kwargs_path(self, conv_kwargs, nb_filters):
         """Initializes encoding or decoding path making sure making sure it
         matches the number of filters dimensions
 
@@ -24,9 +23,9 @@ class ConvNet(nn.Module):
         """
         if isinstance(conv_kwargs, list):
             assert len(conv_kwargs) == len(nb_filters), "Kwargs and number of filters length must match"
-            return conv_kwargs
+            return [{**self.BASE_KWARGS, **kwargs} for kwargs in conv_kwargs]
         elif isinstance(conv_kwargs, dict):
-            return len(nb_filters) * [conv_kwargs]
+            return len(nb_filters) * [{**self.BASE_KWARGS, **conv_kwargs}]
         else:
             raise TypeError("kwargs must be of type dict or list[dict]")
 

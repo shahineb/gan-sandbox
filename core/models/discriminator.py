@@ -21,7 +21,7 @@ class Discriminator(ConvNet):
         # Setup network's dimensions
         C, H, W = input_size
         self.nb_filters = nb_filters
-        self.conv_kwargs = Discriminator._init_kwargs_path(conv_kwargs, nb_filters)
+        self.conv_kwargs = self._init_kwargs_path(conv_kwargs, nb_filters)
         self.output_dim = output_dim
 
         # Build convolutional layers
