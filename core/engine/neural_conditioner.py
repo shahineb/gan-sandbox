@@ -27,6 +27,15 @@ class NCTrainer(Trainer):
         self.discriminator = modules.Discriminator(**self.configs.kwargs["discriminator"])
         self.disc_optimizer = self.config.kwargs["discriminator_optimizer"]  # TO BE CHECKED
 
+    def _compute_loss(self, output_real_sample, output_fake_sample):
+        target_real_sample = torch.ones_like(output_real_sample)
+        target_fake_sample = torch.zeros_like(output_fake_sample)
+        loss_real_sample = self.criterion(output_real_sample, target_real_sample)
+        loss_fake_sample = self.criterion(output_fake_sample, target_fake_sample)
+        disc_loss = loss_real_sample + loss_fake_sample
+        gen_loss = self.criterion(output_fake_sample, target_real_sample)
+        return gen_loss, disc_loss
+
     def _train_epoch(self, epoch, dataloader):
         """Run training on an epoch.
 
@@ -36,12 +45,12 @@ class NCTrainer(Trainer):
         """
         # prepare model for training
         self.model.train()
+        self.discriminator.train()
 
         # init  progress bar, losses counters and metrics
         bar = Bar(f'Epoch {epoch + 1}', max=len(dataloader))
         total_disc_loss = 0
         total_gen_loss = 0
-        total_loss = 0
         if self.metrics:
             total_metrics = np.zeros(len(self.metrics))
 
@@ -51,10 +60,14 @@ class NCTrainer(Trainer):
             a, r = self.mask_generator(batch_size=dataloader.batch_size)
             z = torch.rand((dataloader.batch_size,) + data.shape[-2:]).unsqueeze(1)
 
+            # Move inputs to device
+            data = data.to(self.device)
+            a, r, z = a.to(self.device), r.to(self.device), z.to(self.device)
+
             # Build vae input and real sample
             a_, r_ = a.unsqueeze(1), r.unsqueeze(1)
             inputs = torch.cat([data.mul(a_), a_, r_, z], dim=1)
-            real_sample = torch.cat([inputs.mul(a_), inputs.mul(r_), a_, r_], dim=1)
+            real_sample = data.mul(r_)
 
             # Forward pass on neural conditioner
             fake_sample = self.model(inputs)
@@ -80,5 +93,81 @@ class NCTrainer(Trainer):
 
             # run metrics computation on training data
             if self.metrics:
-                eval_data = torch.cat([data, fake_sample])
-                total_metrics += self._eval_metrics(data, torch.ones(data.size(0)))
+                total_metrics += self._eval_metrics(inputs, torch.ones(data.size(0)))
+
+            if batch_idx % self._log_steps == 0:
+                bar.suffix = "{}/{} ({:.0f}%%) | GenLoss: {:.6f} | DiscLoss {:.6f}".format(
+                             batch_idx * dataloader.batch_size,
+                             dataloader.n_train_samples,
+                             100.0 * batch_idx / len(dataloader),
+                             total_gen_loss / (batch_idx + 1),
+                             total_disc_loss / (batch_idx + 1))
+                bar.next(self._log_steps)
+
+        # sum up dictionnary
+        logs = {'gen_loss': total_gen_loss / len(dataloader),
+                'disc_loss': total_disc_loss / len(dataloader)}
+        if self.metrics:
+            total_metrics = total_metrics / len(dataloader)
+            logs.update({"train/" + metric.__name__: total_metrics[i] for i, metric in enumerate(self.metrics)})
+        return logs
+
+    def _valid_epoch(self, epoch, dataloader):
+        """Run validation on an epoch
+
+        Args:
+            epoch (int): epoch number
+            dataloader (core.dataloader._base.BaseDataLoader)
+        """
+        # prepare model for inference
+        self.model.eval()
+        self.discriminator.eval()
+
+        total_disc_loss = 0
+        total_gen_loss = 0
+        # init epoch metrics
+        if self.metrics:
+            total_metrics = np.zeros(len(self.metrics))
+
+        # run validation loop
+        with torch.no_grad():
+            for batch_idx, (data, target) in enumerate(dataloader):
+                # Generate available and requested features masks and noise tensor
+                a, r = self.mask_generator(batch_size=dataloader.batch_size)
+                z = torch.rand((dataloader.batch_size,) + data.shape[-2:]).unsqueeze(1)
+
+                # Move inputs to device
+                data = data.to(self.device)
+                a, r, z = a.to(self.device), r.to(self.device), z.to(self.device)
+
+                # Build vae input and real sample
+                a_, r_ = a.unsqueeze(1), r.unsqueeze(1)
+                inputs = torch.cat([data.mul(a_), a_, r_, z], dim=1)
+                real_sample = data.mul(r_)
+
+                # Forward pass on neural conditioner
+                fake_sample = self.model(inputs)
+
+                # Forward pass on discriminator
+                output_real_sample = self.discriminator(real_sample)
+                output_fake_sample = self.discriminator(fake_sample)
+
+                # Compute loss
+                gen_loss, disc_loss = self._compute_loss(output_real_sample, output_fake_sample)
+
+                # Record loss values
+                total_disc_loss += disc_loss.item()
+                total_gen_loss += gen_loss.item()
+
+                # update epoch loss and metrics
+                if self.metrics:
+                    total_metrics += self._eval_metrics(data, target)
+
+        # sum up dictionnary
+        logs = {'gen_loss': total_gen_loss / len(dataloader),
+                'disc_loss': total_disc_loss / len(dataloader)}
+
+        if self.metrics:
+            total_metrics = total_metrics / len(dataloader)
+            logs.update({"val/" + metric.__name__: total_metrics[i] for i, metric in enumerate(self.metrics)})
+        return logs
