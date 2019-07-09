@@ -1,1 +1,1 @@
-bin_dir = "bin/"
+bin_dir = "./bin/"

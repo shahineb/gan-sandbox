@@ -10,7 +10,7 @@ from .trainer import Trainer
 base_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../..")
 sys.path.append(base_dir)
 
-from core.models import modules
+from core.models import modules, Discriminator
 
 
 class NCTrainer(Trainer):
@@ -24,8 +24,9 @@ class NCTrainer(Trainer):
                                         multigpu=multigpu)
         # setup mask generation instance and discriminator
         self.mask_generator = modules.FeatureMasksGenerator(**self.config.kwargs["masks"])
-        self.discriminator = modules.Discriminator(**self.configs.kwargs["discriminator"])
-        self.disc_optimizer = self.config.kwargs["discriminator_optimizer"]  # TO BE CHECKED
+        self.discriminator = Discriminator(**self.config.kwargs["discriminator"])
+        self.disc_optimizer = torch.optim.Adam(params=self.discriminator.parameters(),
+                                               **self.config.kwargs["disc_optimizer"])
 
     def _compute_loss(self, output_real_sample, output_fake_sample):
         target_real_sample = torch.ones_like(output_real_sample)
@@ -77,12 +78,13 @@ class NCTrainer(Trainer):
             output_fake_sample = self.discriminator(fake_sample)
 
             # Compute loss
-            gen_loss, disc_loss = self._compute_loss(output_real_sample, output_fake_sample)
+            gen_loss, disc_loss = self._compute_loss(torch.sigmoid(output_real_sample),
+                                                     torch.sigmoid(output_fake_sample))
 
             # Backward + optimize
             self.optimizer.zero_grad()
             self.disc_optimizer.zero_grad()
-            gen_loss.backward()
+            gen_loss.backward(retain_graph=True)
             disc_loss.backward()
             self.optimizer.step()
             self.disc_optimizer.step()
