@@ -72,7 +72,7 @@ class VAE(ConvNet):
             logvar (torch.Tensor)
         """
         std = logvar.mul(0.5).exp_()
-        eps = torch.randn(*mu.size())
+        eps = torch.randn_like(mu)
         z = mu + std * eps
         return z
 

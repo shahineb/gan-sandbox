@@ -2,8 +2,7 @@ import os
 import sys
 import numpy as np
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
+from torchvision.utils import make_grid
 from progress.bar import Bar
 from .trainer import Trainer
 
@@ -24,7 +23,7 @@ class NCTrainer(Trainer):
                                         multigpu=multigpu)
         # setup mask generation instance and discriminator
         self.mask_generator = modules.FeatureMasksGenerator(**self.config.kwargs["masks"])
-        self.discriminator = Discriminator(**self.config.kwargs["discriminator"])
+        self.discriminator = Discriminator(**self.config.kwargs["discriminator"]).to(self.device)
         self.disc_optimizer = torch.optim.Adam(params=self.discriminator.parameters(),
                                                **self.config.kwargs["disc_optimizer"])
 
@@ -173,3 +172,39 @@ class NCTrainer(Trainer):
             total_metrics = total_metrics / len(dataloader)
             logs.update({"val/" + metric.__name__: total_metrics[i] for i, metric in enumerate(self.metrics)})
         return logs
+
+    def _image_callback(self, data, target, epoch):
+        """Image dumping callback for tensorboard
+
+        Args:
+            data (torch.Tensor): images batch
+            epoch (int): epoch number
+        """
+        # Generate available and requested features masks and noise tensor
+        a, r = self.mask_generator(batch_size=data.size(0))
+        z = torch.rand((data.size(0),) + data.shape[-2:]).unsqueeze(1)
+
+        # Move inputs to device
+        data = data.to(self.device)
+        a, r, z = a.to(self.device), r.to(self.device), z.to(self.device)
+
+        # Build vae input
+        a_, r_ = a.unsqueeze(1), r.unsqueeze(1)
+        inputs = torch.cat([data.mul(a_), a_, r_, z], dim=1)
+
+        # Forward pass on neural conditioner
+        with torch.no_grad():
+            fake_sample = self.model(inputs)
+
+        self.writer.add_image(tag='conditioned input',
+                              img_tensor=make_grid(data.mul(a_).cpu(), nrow=8, normalize=True),
+                              global_step=epoch)
+        self.writer.add_image(tag='generated samples',
+                              img_tensor=make_grid(fake_sample.cpu(), nrow=8, normalize=True),
+                              global_step=epoch)
+
+    def _histogram_callback(self, epoch):
+        for name, p in self.model.named_parameters():
+            self.writer.add_histogram(name, p, bins='auto', global_step=epoch)
+        for name, p in self.discriminator.named_parameters():
+            self.writer.add_histogram(name, p, bins='auto', global_step=epoch)
