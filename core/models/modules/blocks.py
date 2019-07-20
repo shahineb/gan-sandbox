@@ -60,6 +60,7 @@ class ConvTranspose2d(nn.Module):
         out_channels (int): Number of channels produced by the convolution
         kernel_size (int or tuple): Size of the convolving kernel
         stride (int or tuple, optional): stride for the cross-correlation. Default: 1
+        padding (int or tuple, optional): zero-padding will be added to both sides of each dimension in the inpu
         output_padding (int or tuple, optional): controls the additional size added to one side of the output shape. Default: 0
         dilation (int or tuple, optional): Spacing between kernel elements. Default: 1
         relu (bool): if True, uses ReLU
@@ -67,12 +68,13 @@ class ConvTranspose2d(nn.Module):
     """
 
     def __init__(self, in_channels, out_channels, kernel_size, stride=1,
-                 output_padding=0, dilation=1, relu=False, bn=False):
+                 padding=1, output_padding=0, dilation=1, relu=False, bn=False):
         super(ConvTranspose2d, self).__init__()
         self.conv = nn.ConvTranspose2d(in_channels=in_channels,
                                        out_channels=out_channels,
                                        kernel_size=kernel_size,
                                        stride=stride,
+                                       padding=padding,
                                        output_padding=output_padding,
                                        dilation=dilation)
         self.bn = nn.BatchNorm2d(out_channels, eps=0.001, momentum=0, affine=True) if bn else None

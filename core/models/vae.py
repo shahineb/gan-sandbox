@@ -50,7 +50,7 @@ class VAE(ConvNet):
             raise ZeroDivisionError("Overpooled input")
 
         # Build decoding layers
-        decoding_seq = [ConvTranspose2d(in_channels=self.h_dim, out_channels=self.dec_nf[0], **self.dec_kwargs[0])]
+        decoding_seq = [ConvTranspose2d(in_channels=self.h_dim // 64, out_channels=self.dec_nf[0], **self.dec_kwargs[0])]
         decoding_seq += [ConvTranspose2d(in_channels=self.dec_nf[i - 1], out_channels=self.dec_nf[i],
                          **self.dec_kwargs[i]) for i in range(1, len(self.dec_nf))]
         decoding_seq += [ConvTranspose2d(in_channels=self.dec_nf[-1], out_channels=self.out_channels,
@@ -97,5 +97,5 @@ class VAE(ConvNet):
         h = self.encoder(x)
         z, mu, logvar = self.bottleneck(h.view(h.size(0), -1))
         z = self.fc3(z)
-        output = self.decoder(z.view(-1, self.h_dim, 1, 1))
+        output = self.decoder(z.view(-1, self.h_dim // 64, 8, 8))
         return output
