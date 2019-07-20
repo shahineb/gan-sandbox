@@ -39,7 +39,7 @@ class BaseDataLoader(DataLoader, ABC):
                  num_workers, sampler, collate_fn, drop_last, n_steps=-1,
                  val_transform=None, seed=SEED, validation_split=0.):
         shuffle = False if sampler else shuffle
-        self.n_samples = len(dataset)
+        self.n_samples = len(sampler) if sampler else len(dataset)
         self.train_transform = train_transform
         self.val_transform = val_transform
         self.init_kwargs = {

@@ -36,9 +36,9 @@ class Trainer:
         self._config = config
         self._config.model.to(self._device)
         self._verbose = verbose
-        self._logger = verboselogs.VerboseLogger('verbose-demo')
+        self._logger = verboselogs.VerboseLogger('demo')
         self._logger.addHandler(logging.StreamHandler())
-        self._logger.setLevel(verbose)
+        self._logger.setLevel(logging.INFO)
         self._chkpt = chkpt
         self._tensorboard = tensorboard
         if tensorboard:

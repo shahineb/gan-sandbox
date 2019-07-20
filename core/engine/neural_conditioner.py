@@ -132,7 +132,7 @@ class NCTrainer(Trainer):
 
         # run validation loop
         with torch.no_grad():
-            for batch_idx, (data, target) in enumerate(dataloader):
+            for batch_idx, data in enumerate(dataloader):
                 # Generate available and requested features masks and noise tensor
                 a, r = self.mask_generator(batch_size=dataloader.batch_size)
                 z = torch.rand((dataloader.batch_size,) + data.shape[-2:]).unsqueeze(1)
@@ -154,7 +154,8 @@ class NCTrainer(Trainer):
                 output_fake_sample = self.discriminator(fake_sample)
 
                 # Compute loss
-                gen_loss, disc_loss = self._compute_loss(output_real_sample, output_fake_sample)
+                gen_loss, disc_loss = self._compute_loss(torch.sigmoid(output_real_sample),
+                                                         torch.sigmoid(output_fake_sample))
 
                 # Record loss values
                 total_disc_loss += disc_loss.item()
@@ -180,6 +181,7 @@ class NCTrainer(Trainer):
             data (torch.Tensor): images batch
             epoch (int): epoch number
         """
+        data = torch.stack(data)
         # Generate available and requested features masks and noise tensor
         a, r = self.mask_generator(batch_size=data.size(0))
         z = torch.rand((data.size(0),) + data.shape[-2:]).unsqueeze(1)
@@ -196,10 +198,10 @@ class NCTrainer(Trainer):
         with torch.no_grad():
             fake_sample = self.model(inputs)
 
-        self.writer.add_image(tag='conditioned input',
+        self.writer.add_image(tag='conditioned_input',
                               img_tensor=make_grid(data.mul(a_).cpu(), nrow=8, normalize=True),
                               global_step=epoch)
-        self.writer.add_image(tag='generated samples',
+        self.writer.add_image(tag='generated_samples',
                               img_tensor=make_grid(fake_sample.cpu(), nrow=8, normalize=True),
                               global_step=epoch)
 
