@@ -10,56 +10,56 @@ sys.path.append(base_dir)
 import utils.IOHandler as io
 
 
-def setseed(func):
-    @wraps(func)
+def setseed(fn):
+    @wraps(fn)
     def wrapper(*args, seed=None, **kwargs):
         if seed:
             np.random.seed(seed)
-        return func(*args, seed=seed, **kwargs)
+        return fn(*args, seed=seed, **kwargs)
     return wrapper
 
 
-def timeit(func):
+def timeit(fn):
     def timed(*args, **kwargs):
         ts = time.time()
-        result = func(*args, **kwargs)
+        result = fn(*args, **kwargs)
         te = time.time()
 
         if 'log_time' in kwargs:
-            name = kwargs.get('log_name', func.__name__.upper())
+            name = kwargs.get('log_name', fn.__name__.upper())
             kwargs['log_time'][name] = int((te - ts) * 1000)
         else:
-            print('%r  %2.2f ms' % (func.__name__, (te - ts) * 1000))
+            print('%r  %2.2f ms' % (fn.__name__, (te - ts) * 1000))
         return result
     return timed
 
 
 def selfaccepts(*types):
-    def check_accepts(func):
-        assert len(types) == func.__code__.co_argcount - 1
+    def check_accepts(fn):
+        assert len(types) == fn.__code__.co_argcount - 1
 
-        @wraps(func)
+        @wraps(fn)
         def wrapper(self, *args, **kwargs):
             for (a, t) in zip(args, types):
                 assert isinstance(a, t), \
                     "arg %r does not match %s" % (a, t)
-            return func(self, *args, **kwargs)
-        wrapper.__name__ = func.__name__
+            return fn(self, *args, **kwargs)
+        wrapper.__name__ = fn.__name__
         return wrapper
     return check_accepts
 
 
 def accepts(*types):
-    def check_accepts(func):
-        assert len(types) == func.__code__.co_argcount
+    def check_accepts(fn):
+        assert len(types) == fn.__code__.co_argcount
 
-        @wraps(func)
+        @wraps(fn)
         def wrapper(*args, **kwargs):
             for (a, t) in zip(args, types):
                 assert isinstance(a, t), \
                     "arg %r does not match %s" % (a, t)
-            return func(*args, **kwargs)
-        wrapper.__name__ = func.__name__
+            return fn(*args, **kwargs)
+        wrapper.__name__ = fn.__name__
         return wrapper
     return check_accepts
 
