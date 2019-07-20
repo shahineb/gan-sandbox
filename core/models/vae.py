@@ -97,5 +97,6 @@ class VAE(ConvNet):
         h = self.encoder(x)
         z, mu, logvar = self.bottleneck(h.view(h.size(0), -1))
         z = self.fc3(z)
+        # TO DO : What if hdim % 64 != 0 ? --> answer is in hdim computation formula. Why 64 specifically ? fix this ugly hack
         output = self.decoder(z.view(-1, self.h_dim // 64, 8, 8))
         return output
