@@ -8,7 +8,6 @@ import numpy as np
 import torch
 from torch.utils.tensorboard import SummaryWriter
 from .config_file import ConfigFile
-from utils.decorators import validation
 
 base_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../..")
 sys.path.append(base_dir)
@@ -120,7 +119,6 @@ class Trainer:
         for name, p in self.model.named_parameters():
             self.writer.add_histogram(name, p, bins='auto', global_step=epoch)
 
-    @validation
     def _callbacks(self, epoch, seed=None):
         """At the end of validation loop, flows through the different
         tensorboard callbacks that have been setup

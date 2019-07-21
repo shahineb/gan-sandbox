@@ -163,7 +163,7 @@ class NCTrainer(Trainer):
 
                 # update epoch loss and metrics
                 if self.metrics:
-                    total_metrics += self._eval_metrics(data, target)
+                    total_metrics += self._eval_metrics(data, None)
 
         # sum up dictionnary
         logs = {'gen_loss': total_gen_loss / len(dataloader),

@@ -40,7 +40,7 @@ def main(argv):
 
     # Load checkpoint
     if FLAGS.resume:
-        trainer.resume_checkpoint(FLAGS.resume)
+        trainer.resume_checkpoint(int(FLAGS.resume))
     trainer._logger.verbose(trainer.config)
 
     # Train model
