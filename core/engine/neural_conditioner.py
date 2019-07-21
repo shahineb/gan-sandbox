@@ -28,13 +28,42 @@ class NCTrainer(Trainer):
                                                **self.config.kwargs["disc_optimizer"])
 
     def _compute_loss(self, output_real_sample, output_fake_sample):
+        """Adversarial networks loss computation given by :
+
+            LossDisc = E_{x~realdata}[-logD(x)] + E_{z~inputs}[-log(1 - D(G(z)))]
+            LossGen = E_{z~inputs}[-logD(z)]
+
+            We approximate:
+                E_{x~realdata}[-logD(x)] = Avg(CrossEnt_{x:realbatch}(1, D(x)))
+                E_{z~inputs}[-log(1 - D(G(z)))] = Avg(CrossEnt_{x:fakebatch}(0, D(x)))
+                E_{z~inputs}[-logD(z)] = Avg(CrossEnt_{x:fakebatch}(1, D(x)))
+        Args:
+            output_real_sample (torch.Tensor): (N, ) discriminator pred on real samples
+            output_fake_sample (torch.Tensor): (N, ) discriminator pred on fake samples
+        """
+        # Setup targets vectors
         target_real_sample = torch.ones_like(output_real_sample)
         target_fake_sample = torch.zeros_like(output_fake_sample)
+
+        # Losses computation, criterion should be crossentropy
         loss_real_sample = self.criterion(output_real_sample, target_real_sample)
         loss_fake_sample = self.criterion(output_fake_sample, target_fake_sample)
         disc_loss = loss_real_sample + loss_fake_sample
         gen_loss = self.criterion(output_fake_sample, target_real_sample)
         return gen_loss, disc_loss
+
+    def _eval_metrics(self, output_real_sample, output_fake_sample):
+        # Setup complete outputs and targets vectors
+        target_real_sample = torch.ones_like(output_real_sample)
+        target_fake_sample = torch.zeros_like(output_fake_sample)
+        output = torch.cat([output_real_sample, output_fake_sample])
+        target = torch.cat([target_real_sample, target_fake_sample])
+
+        # Compute generator and discriminator metrics
+        fooling_rate = self.metrics[0](output_fake_sample, target_real_sample)
+        precision = self.metrics[1](output, target)
+        recall = self.metrics[2](output, target)
+        return np.array([fooling_rate, precision, recall])
 
     def _train_epoch(self, epoch, dataloader):
         """Run training on an epoch.
@@ -73,12 +102,12 @@ class NCTrainer(Trainer):
             fake_sample = self.model(inputs)
 
             # Forward pass on discriminator
-            output_real_sample = self.discriminator(real_sample)
-            output_fake_sample = self.discriminator(fake_sample)
+            output_real_sample = torch.sigmoid(self.discriminator(real_sample))
+            output_fake_sample = torch.sigmoid(self.discriminator(fake_sample))
 
             # Compute loss
-            gen_loss, disc_loss = self._compute_loss(torch.sigmoid(output_real_sample),
-                                                     torch.sigmoid(output_fake_sample))
+            gen_loss, disc_loss = self._compute_loss(output_real_sample,
+                                                     output_fake_sample)
 
             # Backward + optimize
             self.optimizer.zero_grad()
@@ -94,15 +123,19 @@ class NCTrainer(Trainer):
 
             # run metrics computation on training data
             if self.metrics:
-                total_metrics += self._eval_metrics(inputs, torch.ones(data.size(0)))
+                total_metrics += self._eval_metrics(output_real_sample,
+                                                    output_fake_sample)
 
             if batch_idx % self._log_steps == 0:
-                bar.suffix = "{}/{} ({:.0f}%%) | GenLoss: {:.6f} | DiscLoss {:.6f}".format(
+                bar.suffix = "{}/{} ({:.0f}%%) | GenLoss: {:.4f} | DiscLoss {:.4f} | FoolingRate {:.3f}| Precision {:.3f}| Recall {:.3f}".format(
                              batch_idx * dataloader.batch_size,
                              dataloader.n_train_samples,
                              100.0 * batch_idx / len(dataloader),
                              total_gen_loss / (batch_idx + 1),
-                             total_disc_loss / (batch_idx + 1))
+                             total_disc_loss / (batch_idx + 1),
+                             total_metrics[0] / len(dataloader),
+                             total_metrics[1] / len(dataloader),
+                             total_metrics[2] / len(dataloader))
                 bar.next(self._log_steps)
 
         # sum up dictionnary
@@ -150,12 +183,12 @@ class NCTrainer(Trainer):
                 fake_sample = self.model(inputs)
 
                 # Forward pass on discriminator
-                output_real_sample = self.discriminator(real_sample)
-                output_fake_sample = self.discriminator(fake_sample)
+                output_real_sample = torch.sigmoid(self.discriminator(real_sample))
+                output_fake_sample = torch.sigmoid(self.discriminator(fake_sample))
 
                 # Compute loss
-                gen_loss, disc_loss = self._compute_loss(torch.sigmoid(output_real_sample),
-                                                         torch.sigmoid(output_fake_sample))
+                gen_loss, disc_loss = self._compute_loss(output_real_sample,
+                                                         output_fake_sample)
 
                 # Record loss values
                 total_disc_loss += disc_loss.item()
@@ -163,7 +196,8 @@ class NCTrainer(Trainer):
 
                 # update epoch loss and metrics
                 if self.metrics:
-                    total_metrics += self._eval_metrics(data, target)
+                    total_metrics += self._eval_metrics(output_real_sample,
+                                                        output_fake_sample)
 
         # sum up dictionnary
         logs = {'gen_loss': total_gen_loss / len(dataloader),

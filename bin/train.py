@@ -2,7 +2,6 @@ import os
 import sys
 from absl import app, flags
 import torch
-import torch.nn as nn
 
 base_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..")
 sys.path.append(base_dir)
@@ -40,8 +39,8 @@ def main(argv):
 
     # Load checkpoint
     if FLAGS.resume:
-        trainer.resume_checkpoint(FLAGS.resume)
-    trainer._logger.verbose(trainer.config)
+        trainer.resume_checkpoint(int(FLAGS.resume))
+    trainer._logger.info(trainer.config)
 
     # Train model
     trainer.fit()
