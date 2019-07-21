@@ -99,4 +99,4 @@ class VAE(ConvNet):
         z = self.fc3(z)
         # TO DO : What if hdim % 64 != 0 ? --> answer is in hdim computation formula. Why 64 specifically ? fix this ugly hack
         output = self.decoder(z.view(-1, self.h_dim // 16, 4, 4))
-        return torch.tanh(output)
+        return 0.5 + 0.5 * torch.tanh(output)
