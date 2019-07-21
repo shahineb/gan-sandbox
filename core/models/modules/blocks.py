@@ -81,7 +81,7 @@ class ConvTranspose2d(nn.Module):
                                        padding=padding,
                                        output_padding=output_padding,
                                        dilation=dilation)
-        self.bn = nn.BatchNorm2d(out_channels, eps=0.001, momentum=0, affine=True) if bn else None
+        self.bn = nn.BatchNorm2d(out_channels, eps=1e-5, momentum=0.1, affine=True) if bn else None
         self.relu = nn.ReLU(inplace=True) if relu else None
 
         # Weights initializer
