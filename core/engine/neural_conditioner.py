@@ -168,7 +168,8 @@ class NCTrainer(Trainer):
             for batch_idx, data in enumerate(dataloader):
                 # Generate available and requested features masks and noise tensor
                 a, r = self.mask_generator(batch_size=dataloader.batch_size)
-                z = torch.rand((dataloader.batch_size,) + data.shape[-2:]).unsqueeze(1)
+                z = 0.2 * torch.randn((dataloader.batch_size,) + data.shape[-2:]) + 0.5
+                z = z.unsqueeze(1)
 
                 # Move inputs to device
                 data = data.to(self.device)
@@ -232,8 +233,11 @@ class NCTrainer(Trainer):
         with torch.no_grad():
             fake_sample = self.model(inputs)
 
-        self.writer.add_image(tag='conditioned_input',
+        self.writer.add_image(tag='available_samples',
                               img_tensor=make_grid(data.mul(a_).cpu(), nrow=8, normalize=True),
+                              global_step=epoch)
+        self.writer.add_image(tag='requested_samples',
+                              img_tensor=make_grid(data.mul(r_).cpu(), nrow=8, normalize=True),
                               global_step=epoch)
         self.writer.add_image(tag='generated_samples',
                               img_tensor=make_grid(fake_sample.cpu(), nrow=8, normalize=True),
