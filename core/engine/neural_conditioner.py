@@ -133,9 +133,9 @@ class NCTrainer(Trainer):
                              100.0 * batch_idx / len(dataloader),
                              total_gen_loss / (batch_idx + 1),
                              total_disc_loss / (batch_idx + 1),
-                             total_metrics[0] / len(dataloader),
-                             total_metrics[1] / len(dataloader),
-                             total_metrics[2] / len(dataloader))
+                             total_metrics[0] / (batch_idx + 1),
+                             total_metrics[1] / (batch_idx + 1),
+                             total_metrics[2] / (batch_idx + 1))
                 bar.next(self._log_steps)
 
         # sum up dictionnary

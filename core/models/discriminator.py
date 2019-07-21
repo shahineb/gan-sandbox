@@ -30,17 +30,20 @@ class Discriminator(ConvNet):
         hidden_seq += [Conv2d(in_channels=self.nb_filters[i - 1], out_channels=self.nb_filters[i],
                        **self.conv_kwargs[i]) for i in range(1, len(self.nb_filters))]
 
-        # TODO : Conv kernel intializer
         self.hidden_layers = nn.Sequential(*hidden_seq)
         self.h_dim = self._hidden_dimension_numel()
 
         # Build and initialize output layer
         try:
-            self.output_layer = nn.Linear(self.h_dim, self.output_dim)
+            self.output_layer = nn.Sequential(nn.Linear(self.h_dim, 128),
+                                              nn.Dropout2d(p=0.2),
+                                              nn.Linear(128, self.output_dim))
         except ZeroDivisionError:
             raise ZeroDivisionError("Overpooled input")
-        nn.init.normal_(self.output_layer.weight, mean=0., std=0.02)
-        nn.init.constant_(self.output_layer.bias, 0.)
+        nn.init.normal_(self.output_layer[0].weight, mean=0., std=0.02)
+        nn.init.constant_(self.output_layer[0].bias, 0.)
+        nn.init.normal_(self.output_layer[2].weight, mean=0., std=0.02)
+        nn.init.constant_(self.output_layer[2].bias, 0.)
 
     def _hidden_dimension_numel(self):
         """Computes number of elements of hidden dimension
@@ -58,4 +61,4 @@ class Discriminator(ConvNet):
         h = self.hidden_layers(x)
         h = h.view(h.size(0), self.h_dim)
         out = self.output_layer(h)
-        return out
+        return out.flatten()
