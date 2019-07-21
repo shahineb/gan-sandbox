@@ -62,12 +62,17 @@ class Trainer:
         """
         return self._load(path)
 
+    @abstractmethod
     def _compute_loss(self, output, target):
-        loss = self.criterion(output, target)
-        return loss
+        """Loss computation method to be implemented
+        """
+        raise NotImplementedError
 
-    def _eval_metrics(self, data, target, output):
-        return np.array([metric(output, target) for metric in self.metrics])
+    @abstractmethod
+    def _eval_metrics(self, *args, **kwargs):
+        """Metrics computation method to be implemented
+        """
+        raise NotImplementedError
 
     @abstractmethod
     def _train_epoch(self, epoch, dataloader):
@@ -181,7 +186,7 @@ class Trainer:
         filename = ConfigFile.checkpoints_format.format(epoch=epoch)
         path = os.path.join(self.config.session_dir,
                             ConfigFile.checkpoints_dirname, filename)
-        self._logger.verbose("Saving checkpoint : {} ...".format(filename))
+        self._logger.info("Saving checkpoint : {} ...".format(filename))
 
         arch = type(self.model).__name__
         state = {'arch': arch,
@@ -203,7 +208,7 @@ class Trainer:
         filename = ConfigFile.checkpoints_format.format(epoch=epoch)
         path = os.path.join(self.config.session_dir,
                             ConfigFile.checkpoints_dirname, filename)
-        self._logger.verbose("Loading checkpoint : {}".format(filename))
+        self._logger.info("Loading checkpoint : {}".format(filename))
 
         chkpt = torch.load(path)
         self.config.set_init_epoch(chkpt['epoch'] + 1)
@@ -219,7 +224,7 @@ class Trainer:
         else:
             self.optimizer.load_state_dict(chkpt['optimizer'])
 
-        self._logger.verbose("Checkpoint loaded. Resume training from epoch {}".format(self.init_epoch))
+        self._logger.info("Checkpoint loaded. Resume training from epoch {}".format(self.init_epoch))
         return chkpt
 
     def _setup_training(self, dataloader):
@@ -267,10 +272,10 @@ class Trainer:
             logs.update({**train_logs, **val_logs, 'lr': self.current_lr})
 
             # Print epoch review
-            self._logger.verbose("".center(80, "*"))
+            self._logger.info("".center(80, "*"))
             for key, value in logs.items():
-                self._logger.verbose('\n    {:15s}: {}'.format(str(key).upper(), value))
-            self._logger.verbose("".center(80, "*"))
+                self._logger.info('\n    {:15s}: {}'.format(str(key).upper(), value))
+            self._logger.info("".center(80, "*"))
 
             # Dump tensorboard logs
             if self.tensorboard:
