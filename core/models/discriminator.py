@@ -13,7 +13,7 @@ class Discriminator(ConvNet):
         conv_kwargs (dict, list[dict]): convolutional block kwargs, if dict same everywhere
         output_dim (int): output dimensionality
     """
-    BASE_KWARGS = {'kernel_size': 3, 'stride': 2, 'relu': True}
+    BASE_KWARGS = {'kernel_size': 3, 'stride': 2, 'relu': True, 'bn': True}
 
     def __init__(self, input_size, nb_filters, conv_kwargs=BASE_KWARGS, output_dim=1):
         super(Discriminator, self).__init__(input_size)
@@ -60,5 +60,5 @@ class Discriminator(ConvNet):
         """
         h = self.hidden_layers(x)
         h = h.view(h.size(0), self.h_dim)
-        out = self.output_layer(h)
-        return out.flatten()
+        output = self.output_layer(h)
+        return output.flatten()

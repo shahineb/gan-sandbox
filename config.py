@@ -1,1 +1,1 @@
-bin_dir = "/media/raid/shahine/neural_conditioner"
+bin_dir = "/home/shahine/neural-conditioner/bin"
