@@ -84,35 +84,69 @@ class GANTrainer(Trainer):
             total_metrics = np.zeros(len(self.metrics))
 
         for batch_idx, data in enumerate(dataloader):
-
             # Generate random input from latent space N(0, I)
-            z = torch.randn((dataloader.batch_size,) + self.model.latent_size).unsqueeze(1)
+            z = torch.randn((dataloader.batch_size, ) + self.model.latent_size)
 
             # Move inputs to device
             real_sample, z = data.to(self.device), z.to(self.device)
 
-            # Forward pass on generator
-            fake_sample = self.model(z)
-
-            # Forward pass on discriminator
+            # Train discriminator with real data first
             output_real_sample = torch.sigmoid(self.discriminator(real_sample))
-            output_fake_sample = torch.sigmoid(self.discriminator(fake_sample))
-
-            # Compute loss
-            gen_loss, disc_loss = self._compute_loss(output_real_sample,
-                                                     output_fake_sample)
-
-            # Backward + optimize
-            self.optimizer.zero_grad()
+            target_real_sample = torch.ones_like(output_real_sample)
             self.disc_optimizer.zero_grad()
-            gen_loss.backward(retain_graph=True)
-            disc_loss.backward()
-            self.optimizer.step()
+            loss_real_sample = self.criterion(output_real_sample, target_real_sample)
+            loss_real_sample.backward()
+
+            # Train discriminator with fake data
+            fake_sample = self.model(z)
+            output_fake_sample = torch.sigmoid(self.discriminator(fake_sample.detach()))
+            target_fake_sample = torch.zeros_like(output_fake_sample)
+            loss_fake_sample = self.criterion(output_fake_sample, target_fake_sample)
+            loss_fake_sample.backward()
+            disc_loss = loss_real_sample + loss_fake_sample
             self.disc_optimizer.step()
+
+            # Train generator
+            self.optimizer.zero_grad()
+            output_fake_sample = torch.sigmoid(self.discriminator(fake_sample))
+            gen_loss = self.criterion(output_fake_sample, target_real_sample)
+            gen_loss.backward()
+            self.optimizer.step()
 
             # Record loss values
             total_disc_loss += disc_loss.item()
             total_gen_loss += gen_loss.item()
+
+            ####################################################################
+            # # Generate random input from latent space N(0, I)
+            # z = torch.randn((dataloader.batch_size, ) + self.model.latent_size)
+            #
+            # # Move inputs to device
+            # real_sample, z = data.to(self.device), z.to(self.device)
+            #
+            # # Forward pass on generator
+            # fake_sample = self.model(z)
+            #
+            # # Forward pass on discriminator
+            # output_real_sample = torch.sigmoid(self.discriminator(real_sample))
+            # output_fake_sample = torch.sigmoid(self.discriminator(fake_sample))
+            #
+            # # Compute loss
+            # gen_loss, disc_loss = self._compute_loss(output_real_sample,
+            #                                          output_fake_sample)
+            #
+            # # Backward + optimize
+            # self.optimizer.zero_grad()
+            # self.disc_optimizer.zero_grad()
+            # gen_loss.backward(retain_graph=True)
+            # disc_loss.backward()
+            # self.optimizer.step()
+            # self.disc_optimizer.step()
+            #
+            # # Record loss values
+            # total_disc_loss += disc_loss.item()
+            # total_gen_loss += gen_loss.item()
+            ####################################################################
 
             # run metrics computation on training data
             if self.metrics:
@@ -160,7 +194,7 @@ class GANTrainer(Trainer):
         with torch.no_grad():
             for batch_idx, data in enumerate(dataloader):
                 # Generate random input from latent space N(0, I)
-                z = torch.randn((dataloader.batch_size,) + self.model.latent_size).unsqueeze(1)
+                z = torch.randn((dataloader.batch_size,) + self.model.latent_size)
 
                 # Move inputs to device
                 real_sample, z = data.to(self.device), z.to(self.device)
@@ -202,20 +236,17 @@ class GANTrainer(Trainer):
             epoch (int): epoch number
         """
         # Generate random input from latent space N(0, I)
-        z = torch.randn((data.size(0),) + self.model.latent_size).unsqueeze(1).to(self.device)
+        z = torch.randn((len(data),) + self.model.latent_size).to(self.device)
 
         # Forward pass on neural conditioner
         with torch.no_grad():
             fake_sample = self.model(z)
 
-        self.writer.add_image(tag='latent_space_input',
-                              img_tensor=make_grid(data.mul(z).cpu(), nrow=8, normalize=True),
-                              global_step=epoch)
         self.writer.add_image(tag='generated_samples',
                               img_tensor=make_grid(fake_sample.cpu(), nrow=8, normalize=True),
                               global_step=epoch)
         self.writer.add_image(tag='real_samples',
-                              img_tensor=make_grid(torch.cat(data).cpu(), nrow=8, normalize=True),
+                              img_tensor=make_grid(torch.stack(data).cpu(), nrow=8, normalize=True),
                               global_step=epoch)
 
     def _histogram_callback(self, epoch):

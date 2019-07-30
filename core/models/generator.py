@@ -1,3 +1,4 @@
+import torch
 import torch.nn as nn
 from .backbones import ConvNet
 from .modules import ConvTranspose2d
@@ -33,5 +34,9 @@ class Generator(ConvNet):
         Args:
             x (torch.Tensor): (N, C, W, H)
         """
-        output = self.hidden_layers(x)
-        return output
+        h = self.hidden_layers(x)
+        return torch.tanh(h)
+
+    @property
+    def latent_size(self):
+        return self.input_size
