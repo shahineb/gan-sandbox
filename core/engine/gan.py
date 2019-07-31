@@ -10,6 +10,7 @@ base_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../..")
 sys.path.append(base_dir)
 
 from core.models import Discriminator
+from core.models import utils
 
 
 class GANTrainer(Trainer):
@@ -26,6 +27,10 @@ class GANTrainer(Trainer):
         self.discriminator = Discriminator(**self.config.kwargs["discriminator"]).to(self.device)
         self.disc_optimizer = torch.optim.Adam(params=self.discriminator.parameters(),
                                                **self.config.kwargs["disc_optimizer"])
+
+        # init weights
+        self.model.apply(utils.weight_init)
+        self.discriminator.apply(utils.weight_init)
 
     def _compute_loss(self, output_real_sample, output_fake_sample):
         """Adversarial networks loss computation given by :
@@ -90,63 +95,42 @@ class GANTrainer(Trainer):
             # Move inputs to device
             real_sample, z = data.to(self.device), z.to(self.device)
 
-            # Train discriminator with real data first
-            output_real_sample = torch.sigmoid(self.discriminator(real_sample))
-            target_real_sample = torch.ones_like(output_real_sample)
+            # >>> TRAIN DISCRIMINATOR
             self.disc_optimizer.zero_grad()
+            # Forward pass on real data
+            output_real_sample = torch.sigmoid(self.discriminator(real_sample))
+
+            # Loss + backward on real sample batch
+            target_real_sample = torch.ones_like(output_real_sample)
             loss_real_sample = self.criterion(output_real_sample, target_real_sample)
             loss_real_sample.backward()
 
-            # Train discriminator with fake data
+            # Generate fake sample batch + forward pass, note we detach fake samples to not backprop though generator
             fake_sample = self.model(z)
             output_fake_sample = torch.sigmoid(self.discriminator(fake_sample.detach()))
+
+            # Loss + backward on fake batch
             target_fake_sample = torch.zeros_like(output_fake_sample)
             loss_fake_sample = self.criterion(output_fake_sample, target_fake_sample)
             loss_fake_sample.backward()
-            disc_loss = loss_real_sample + loss_fake_sample
+
             self.disc_optimizer.step()
 
-            # Train generator
+            # >>> TRAIN GENERATOR
             self.optimizer.zero_grad()
+            # Forward pass on fake data data
             output_fake_sample = torch.sigmoid(self.discriminator(fake_sample))
+
+            # Loss + backward on real sample batch
             gen_loss = self.criterion(output_fake_sample, target_real_sample)
             gen_loss.backward()
+
             self.optimizer.step()
 
             # Record loss values
+            disc_loss = loss_real_sample + loss_fake_sample
             total_disc_loss += disc_loss.item()
             total_gen_loss += gen_loss.item()
-
-            ####################################################################
-            # # Generate random input from latent space N(0, I)
-            # z = torch.randn((dataloader.batch_size, ) + self.model.latent_size)
-            #
-            # # Move inputs to device
-            # real_sample, z = data.to(self.device), z.to(self.device)
-            #
-            # # Forward pass on generator
-            # fake_sample = self.model(z)
-            #
-            # # Forward pass on discriminator
-            # output_real_sample = torch.sigmoid(self.discriminator(real_sample))
-            # output_fake_sample = torch.sigmoid(self.discriminator(fake_sample))
-            #
-            # # Compute loss
-            # gen_loss, disc_loss = self._compute_loss(output_real_sample,
-            #                                          output_fake_sample)
-            #
-            # # Backward + optimize
-            # self.optimizer.zero_grad()
-            # self.disc_optimizer.zero_grad()
-            # gen_loss.backward(retain_graph=True)
-            # disc_loss.backward()
-            # self.optimizer.step()
-            # self.disc_optimizer.step()
-            #
-            # # Record loss values
-            # total_disc_loss += disc_loss.item()
-            # total_gen_loss += gen_loss.item()
-            ####################################################################
 
             # run metrics computation on training data
             if self.metrics:
