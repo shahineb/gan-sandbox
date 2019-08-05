@@ -2,6 +2,7 @@ import os
 import sys
 import numpy as np
 import torch
+import torch.optim as optim
 from torchvision.utils import make_grid
 from progress.bar import Bar
 from .trainer import Trainer
@@ -27,6 +28,7 @@ class GANTrainer(Trainer):
         self.discriminator = Discriminator(**self.config.kwargs["discriminator"]).to(self.device)
         self.disc_optimizer = torch.optim.Adam(params=self.discriminator.parameters(),
                                                **self.config.kwargs["disc_optimizer"])
+        # self.config.set_lr_scheduler(optim.lr_scheduler.ExponentialLR(optimizer=self.disc_optimizer, gamma=0.999))
 
         # init weights
         self.model.apply(utils.weight_init)
@@ -70,6 +72,52 @@ class GANTrainer(Trainer):
         recall = self.metrics[2](output, target)
         return np.array([fooling_rate, precision, recall])
 
+    def _step_discriminator(self, real_sample, latent_sample):
+        # Zero any remaining gradient
+        self.discriminator.zero_grad()
+        self.disc_optimizer.zero_grad()
+
+        # Forward pass on real data
+        output_real_sample = torch.sigmoid(self.discriminator(real_sample))
+
+        # Loss + backward on real sample batch with label smoothing
+        target_real_sample = 0.9 + 0.1 * torch.rand_like(output_real_sample)
+        loss_real_sample = self.criterion(output_real_sample, target_real_sample)
+        loss_real_sample.backward()
+
+        # Generate fake sample batch + forward pass, note we detach fake samples to not backprop though generator
+        fake_sample = self.model(latent_sample)
+        output_fake_sample = torch.sigmoid(self.discriminator(fake_sample.detach()))
+
+        # Loss + backward on fake batch
+        target_fake_sample = torch.zeros_like(output_fake_sample)
+        loss_fake_sample = self.criterion(output_fake_sample, target_fake_sample)
+        loss_fake_sample.backward()
+
+        # Update weights
+        self.disc_optimizer.step()
+
+        return output_real_sample, loss_real_sample, loss_fake_sample
+
+    def _step_generator(self, latent_sample):
+        # Zero out any remaining gradient
+        self.model.zero_grad()
+        self.discriminator.zero_grad()
+        self.optimizer.zero_grad()
+
+        # Forward pass on fake data data
+        fake_sample = self.model(latent_sample)
+        output_fake_sample = torch.sigmoid(self.discriminator(fake_sample))
+
+        # Loss + backward on real sample batch
+        target_real_sample = torch.ones_like(output_fake_sample)
+        gen_loss = self.criterion(output_fake_sample, target_real_sample)
+        gen_loss.backward()
+
+        self.optimizer.step()
+
+        return output_fake_sample, gen_loss
+
     def _train_epoch(self, epoch, dataloader):
         """Run training on an epoch.
 
@@ -89,43 +137,16 @@ class GANTrainer(Trainer):
             total_metrics = np.zeros(len(self.metrics))
 
         for batch_idx, data in enumerate(dataloader):
-            # Generate random input from latent space N(0, I)
-            z = torch.randn((dataloader.batch_size, ) + self.model.latent_size)
+            # Move samples to device
+            data = data.to(self.device)
 
-            # Move inputs to device
-            real_sample, z = data.to(self.device), z.to(self.device)
+            # Generate random input from latent space N(0, I) and train discriminator
+            z = torch.randn((dataloader.batch_size, ) + self.model.latent_size, device=self.device)
+            output_real_sample, loss_real_sample, loss_fake_sample = self._step_discriminator(data, z)
 
-            # >>> TRAIN DISCRIMINATOR
-            self.disc_optimizer.zero_grad()
-            # Forward pass on real data
-            output_real_sample = torch.sigmoid(self.discriminator(real_sample))
-
-            # Loss + backward on real sample batch
-            target_real_sample = torch.ones_like(output_real_sample)
-            loss_real_sample = self.criterion(output_real_sample, target_real_sample)
-            loss_real_sample.backward()
-
-            # Generate fake sample batch + forward pass, note we detach fake samples to not backprop though generator
-            fake_sample = self.model(z)
-            output_fake_sample = torch.sigmoid(self.discriminator(fake_sample.detach()))
-
-            # Loss + backward on fake batch
-            target_fake_sample = torch.zeros_like(output_fake_sample)
-            loss_fake_sample = self.criterion(output_fake_sample, target_fake_sample)
-            loss_fake_sample.backward()
-
-            self.disc_optimizer.step()
-
-            # >>> TRAIN GENERATOR
-            self.optimizer.zero_grad()
-            # Forward pass on fake data data
-            output_fake_sample = torch.sigmoid(self.discriminator(fake_sample))
-
-            # Loss + backward on real sample batch
-            gen_loss = self.criterion(output_fake_sample, target_real_sample)
-            gen_loss.backward()
-
-            self.optimizer.step()
+            # Generate another random latent variable and train generator
+            z = torch.randn((dataloader.batch_size, ) + self.model.latent_size, device=self.device)
+            output_fake_sample, gen_loss = self._step_generator(z)
 
             # Record loss values
             disc_loss = loss_real_sample + loss_fake_sample
@@ -160,7 +181,7 @@ class GANTrainer(Trainer):
     def _valid_epoch(self, epoch, dataloader):
         """Run validation on an epoch
 
-        Args:
+        Args:d
             epoch (int): epoch number
             dataloader (core.dataloader._base.BaseDataLoader)
         """
@@ -220,11 +241,12 @@ class GANTrainer(Trainer):
             epoch (int): epoch number
         """
         # Generate random input from latent space N(0, I)
+        torch.random.manual_seed(self.seed)
         z = torch.randn((len(data),) + self.model.latent_size).to(self.device)
 
         # Forward pass on neural conditioner
         with torch.no_grad():
-            fake_sample = self.model(z)
+            fake_sample = 0.5 * (self.model(z) + 1)
 
         self.writer.add_image(tag='generated_samples',
                               img_tensor=make_grid(fake_sample.cpu(), nrow=8, normalize=True),

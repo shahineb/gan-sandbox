@@ -12,7 +12,7 @@ class Generator(ConvNet):
         nb_filters (list[int]): number of filters of each block
         conv_kwargs (dict, list[dict]): convolutional block kwargs, if dict same everywhere
     """
-    BASE_KWARGS = {'kernel_size': 3, 'stride': 2, 'relu': True, 'bn': True}
+    BASE_KWARGS = {'kernel_size': 4, 'stride': 2, 'bias': False, 'relu': True, 'bn': True}
 
     def __init__(self, latent_size, nb_filters, conv_kwargs=BASE_KWARGS):
         super(Generator, self).__init__(latent_size)

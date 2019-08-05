@@ -240,6 +240,7 @@ class Trainer:
         # Use parallel wrapper
         if self.multigpu and torch.cuda.device_count() > 1:
             self.set_model(torch.nn.DataParallel(self.model))
+            self.model.latent_size = (100, )
 
         # Move model to device
         self.set_model(self.model.to(self.device))

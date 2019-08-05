@@ -17,20 +17,28 @@ class Conv2d(nn.Module):
     """
 
     def __init__(self, in_channels, out_channels, kernel_size, stride=1,
-                 padding=0, dilation=1, relu=False, bn=False):
+                 padding=0, bias=True, dilation=1, relu=False, leak=0., bn=False):
         super(Conv2d, self).__init__()
         self.conv = nn.Conv2d(in_channels=in_channels,
                               out_channels=out_channels,
                               kernel_size=kernel_size,
                               stride=stride,
                               padding=padding,
-                              dilation=dilation)
+                              dilation=dilation,
+                              bias=bias)
         self.bn = nn.BatchNorm2d(out_channels, eps=1e-5, momentum=0.1, affine=True) if bn else None
-        self.relu = nn.ReLU(inplace=True) if relu else None
+        if relu:
+            if leak > 0:
+                self.relu = nn.LeakyReLU(negative_slope=leak, inplace=True)
+            else:
+                self.relu = nn.ReLU(inplace=True)
+        else:
+            self.relu = None
 
         # Weights initializer
         nn.init.normal_(self.conv.weight, mean=0., std=0.02)
-        nn.init.constant_(self.conv.bias, 0.)
+        if self.conv.bias is not None:
+            nn.init.constant_(self.conv.bias, 0.)
 
     def forward(self, x):
         x = self.conv(x)
@@ -72,7 +80,8 @@ class ConvTranspose2d(nn.Module):
     """
 
     def __init__(self, in_channels, out_channels, kernel_size, stride=1,
-                 padding=1, output_padding=0, dilation=1, relu=False, bn=False):
+                 padding=1, output_padding=0, bias=True, dilation=1, relu=False,
+                 leak=0., bn=False):
         super(ConvTranspose2d, self).__init__()
         self.conv = nn.ConvTranspose2d(in_channels=in_channels,
                                        out_channels=out_channels,
@@ -80,13 +89,21 @@ class ConvTranspose2d(nn.Module):
                                        stride=stride,
                                        padding=padding,
                                        output_padding=output_padding,
-                                       dilation=dilation)
+                                       dilation=dilation,
+                                       bias=bias)
         self.bn = nn.BatchNorm2d(out_channels, eps=1e-5, momentum=0.1, affine=True) if bn else None
-        self.relu = nn.ReLU(inplace=True) if relu else None
+        if relu:
+            if leak > 0:
+                self.relu = nn.LeakyReLU(negative_slope=leak, inplace=True)
+            else:
+                self.relu = nn.ReLU(inplace=True)
+        else:
+            self.relu = None
 
         # Weights initializer
         nn.init.normal_(self.conv.weight, mean=0., std=0.02)
-        nn.init.constant_(self.conv.bias, 0.)
+        if self.conv.bias is not None:
+            nn.init.constant_(self.conv.bias, 0.)
 
     def forward(self, x):
         x = self.conv(x)
