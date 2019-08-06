@@ -13,7 +13,7 @@ Make sure all classes required by config file are imported
 """
 from core.dataloader import CelebALoader
 from core.models import VAE, Discriminator, Generator, modules
-from core.engine import ConfigFile, NCTrainer, GANTrainer
+from core.engine import ConfigFile, NCTrainer, GANTrainer, MixGANTrainer
 ################################################################################
 
 
@@ -35,7 +35,7 @@ def main(argv):
               'chkpt': FLAGS.chkpt,
               'tensorboard': FLAGS.tb,
               'multigpu': FLAGS.multigpu}
-    trainer = GANTrainer(**params)
+    trainer = MixGANTrainer(**params)
 
     # Load checkpoint
     if FLAGS.resume:

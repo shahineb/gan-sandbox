@@ -1,4 +1,5 @@
 import numpy as np
+import torch
 import torch.nn as nn
 from .backbones import ConvNet
 from .modules import Conv2d
@@ -56,3 +57,23 @@ class Discriminator(ConvNet):
         h = self.hidden_layers(x)
         output = self.output_layer(h)
         return output.squeeze()
+
+
+class CDiscriminator(Discriminator):
+
+    BASE_KWARGS = {'kernel_size': 3, 'stride': 2, 'bias': False, 'relu': True, 'bn': True}
+
+    def __init__(self, input_size, nb_class, nb_filters, conv_kwargs=BASE_KWARGS, output_dim=1):
+        # Setup class embedding layer
+        C, H, W = input_size
+        self.embedding = nn.Sequential([nn.Embedding(nb_class, nb_class),
+                                        nn.Linear(nb_class, H * W)])
+
+        super(CDiscriminator, self).__init__(latent_size=(C + 1, H, W),
+                                             nb_filters=nb_filters,
+                                             conv_kwargs=conv_kwargs)
+
+    def forward(self, x, labels):
+        y = self.embedding(labels).view_as(x)
+        inputs = torch.cat([x, y], dim=1)
+        return super(CDiscriminator, self).forward(inputs)

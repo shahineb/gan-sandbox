@@ -40,3 +40,24 @@ class Generator(ConvNet):
     @property
     def latent_size(self):
         return self.input_size
+
+
+class CGenerator(Generator):
+
+    BASE_KWARGS = {'kernel_size': 4, 'stride': 2, 'bias': False, 'relu': True, 'bn': True}
+
+    def __init__(self, latent_size, nb_class, nb_filters, conv_kwargs=BASE_KWARGS):
+
+        # Setup class embedding layer
+        C, H, W = latent_size
+        self.embedding = nn.Sequential([nn.Embedding(nb_class, nb_class),
+                                        nn.Linear(nb_class, H * W)])
+
+        super(CGenerator, self).__init__(latent_size=(C + 1, H, W),
+                                         nb_filters=nb_filters,
+                                         conv_kwargs=conv_kwargs)
+
+    def forward(self, x, labels):
+        y = self.embedding(labels).view_as(x)
+        inputs = torch.cat([x, y], dim=1)
+        return super(CGenerator, self).forward(inputs)
