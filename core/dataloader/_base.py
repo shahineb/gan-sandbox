@@ -50,7 +50,7 @@ class BaseDataLoader(DataLoader, ABC):
             'collate_fn': collate_fn,
             'num_workers': num_workers,
             'drop_last': drop_last
-        }
+            }
         super(BaseDataLoader, self).__init__(**self.init_kwargs)
         self.validation_split = validation_split
         self.seed = seed or BaseDataLoader.SEED
