@@ -1,33 +1,51 @@
-# Neural Conditioner
+# Play around with GANs
 
-PyTorch implementation of Neural Conditioner introduced in [_"Learning about an exponential amount of conditional distributions"_](https://arxiv.org/abs/1902.08401)
+_PyTorch implementation of [Generative Adversarial Networks](https://papers.nips.cc/paper/5423-generative-adversarial-nets) and play around with [CelebA dataset](http://mmlab.ie.cuhk.edu.hk/projects/CelebA.html), github-like [Identicon](https://en.wikipedia.org/wiki/Identicon) images and Pokemon sprints._
 
-# TODO
+---
 
-- [ ] Create Logger > Trainer attribute => modify fit and any other places logger should occur
-- [x] Make VAE implementation more general and prone to experiments
-- [ ] Add network initializer
-- [x] Feature to compute hidden dimension numel = f(pooling, strides, padding, kernel_size)
-- [x] Make Discriminator implementation more general and prone to experiments
-- [x] Checkout AverageMeter vs Logger pluggin
-- [ ] Checkout adversarial training scripts to see how adversarial balance is handled
+## Repository structure
+
+```
+├── bin
+│   ├── train.py
+│   ├── dashboard.ipynb
+│   ├── session_1
+│   ├── session_2
+│   ├── ...
+│   └── session_n
+├── core
+│   ├── dataloader
+│   │   ├── transforms
+│   │   └── utils
+│   ├── engine
+│   │   ├── config_file.py
+│   │   ├── trainer.py
+│   │   └── utils
+│   └── models
+│       ├── backbones
+│       └── modules
+├── data
+├── docs
+└── utils
+```
+
+- `data`: contains actual data i.e. CelebA faces and Pokemon sprints, structured according to provider conventions
+- `docs`: any paper, notes, figures relevant to this repository
+- `bin`: `dashboard.ipynb` is our UI to setup experience sessions, setting up an associated directory `session_i`. The experiment is then launched through executing `train.py`, [here](https://github.com/shahineb/gan-sandbox/tree/master/bin) for more details
+- `core`: contains definition of data processing and loading protocols, models and training engines
+
 
 # References
 ```
-@article{DBLP:journals/corr/abs-1902-08401,
-  author    = {Mohamed Ishmael Belghazi and
-               Maxime Oquab and
-               Yann LeCun and
-               David Lopez{-}Paz},
-  title     = {Learning about an exponential amount of conditional distributions},
-  journal   = {CoRR},
-  volume    = {abs/1902.08401},
-  year      = {2019},
-  url       = {http://arxiv.org/abs/1902.08401},
-  archivePrefix = {arXiv},
-  eprint    = {1902.08401},
-  timestamp = {Tue, 21 May 2019 18:03:36 +0200},
-  biburl    = {https://dblp.org/rec/bib/journals/corr/abs-1902-08401},
-  bibsource = {dblp computer science bibliography, https://dblp.org}
+@incollection{NIPS2014_5423,
+title = {Generative Adversarial Nets},
+author = {Goodfellow, Ian and Pouget-Abadie, Jean and Mirza, Mehdi and Xu, Bing and Warde-Farley, David and Ozair, Sherjil and Courville, Aaron and Bengio, Yoshua},
+booktitle = {Advances in Neural Information Processing Systems 27},
+editor = {Z. Ghahramani and M. Welling and C. Cortes and N. D. Lawrence and K. Q. Weinberger},
+pages = {2672--2680},
+year = {2014},
+publisher = {Curran Associates, Inc.},
+url = {http://papers.nips.cc/paper/5423-generative-adversarial-nets.pdf}
 }
 ```

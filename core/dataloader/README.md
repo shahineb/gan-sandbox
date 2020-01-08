@@ -67,6 +67,6 @@ array([ 10473, 137015,  68392, ...,  81146, 104257,  41299])
 >>> dataloader.batch_size  # Size
 8
 
->>> len(dataloader)  # Number of iterations per epoch
+>>> len(dataloader)  # Number of iterations per epoch = n_samples // batch_size
 14242
 ```
