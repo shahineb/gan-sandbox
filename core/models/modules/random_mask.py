@@ -4,6 +4,14 @@ import torch.nn as nn
 
 
 class FeatureMasksGenerator(nn.Module):
+    """Class to generate image masks as in Belghazi et. al 2019 -
+        Learning about an exponential amount of conditional distributions
+
+    Args:
+        size (tuple[int]): (width, height)
+        coverage (tuple[float]): (min_coverage, max_coverage) percentage of
+            pixels allowed to be masked
+    """
 
     def __init__(self, size, coverage):
         super(FeatureMasksGenerator, self).__init__()
