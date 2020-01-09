@@ -21,6 +21,8 @@ It contains :
 - `scores`: directory where model evaluation dataframes are stored as csv files
 - `logs.txt`: output training logs
 
+_NB : None of these files are actually pushed on the repository_
+
 (see more in `tutorial.ipynb`)
 
 ## Run an experiment
