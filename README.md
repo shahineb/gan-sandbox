@@ -6,7 +6,7 @@ _PyTorch implementation of [Generative Adversarial Networks](https://papers.nips
 <img width="60%" src="https://github.com/shahineb/gan-sandbox/blob/master/docs/img/identicon_gans.jpeg" />
 </p>
 <p align="center">
-<em Intermediate Results of Identicon Generation />
+<em> Intermediate Results of Identicon Generation </em>
 </p>  
 
 ## Repository structure
