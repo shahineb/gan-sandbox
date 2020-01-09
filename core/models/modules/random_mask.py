@@ -12,7 +12,6 @@ class FeatureMasksGenerator(nn.Module):
         coverage (tuple[float]): (min_coverage, max_coverage) percentage of
             pixels allowed to be masked
     """
-
     def __init__(self, size, coverage):
         super(FeatureMasksGenerator, self).__init__()
         self.size = size
