@@ -3,9 +3,11 @@
 _PyTorch implementation of [Generative Adversarial Networks](https://papers.nips.cc/paper/5423-generative-adversarial-nets) and play around with [CelebA dataset](http://mmlab.ie.cuhk.edu.hk/projects/CelebA.html), github-like [Identicon](https://en.wikipedia.org/wiki/Identicon) images and [Pokemon sprints](https://www.dropbox.com/s/860hi05kyl0yxaa/pokemon.zip?dl=0)._
 
 <p align="center">
-<img width="70%" src="https://github.com/shahineb/gan-sandbox/blob/master/docs/img/identicon_gans.jpeg" />
-<em>Intermediate Results of Identicon Generation</em>
+<img width="60%" src="https://github.com/shahineb/gan-sandbox/blob/master/docs/img/identicon_gans.jpeg" />
 </p>
+<p align="center">
+<em Intermediate Results of Identicon Generation />
+</p>  
 
 ## Repository structure
 
